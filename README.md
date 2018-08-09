@@ -1,52 +1,19 @@
-<div align="center">
-  <!-- replace with accurate logo e.g from https://worldvectorlogo.com/ -->
-  <img width="200" height="200" src="https://cdn.worldvectorlogo.com/logos/javascript.svg">
-  <a href="https://webpack.js.org/">
-    <img width="200" height="200" vspace="" hspace="25" src="https://cdn.rawgit.com/webpack/media/e7485eb2/logo/icon-square-big.svg">
-  </a>
-  <h1>mini-css-extract-plugin</h1>
-</div>
-
-[![npm][npm]][npm-url]
-[![deps][deps]][deps-url]
-[![tests][tests]][tests-url]
-[![coverage][cover]][cover-url]
-[![chat][chat]][chat-url]
-
-This plugin extracts CSS into separate files. It creates a CSS file per JS file which contains CSS. It supports On-Demand-Loading of CSS and SourceMaps.
-
-It builds on top of a new webpack v4 feature (module types) and requires webpack 4 to work.
-
-Compared to the extract-text-webpack-plugin:
-
-- Async loading
-- No duplicate compilation (performance)
-- Easier to use
-- Specific to CSS
-
-<h2 align="center">Install</h2>
+This plugis is a fork of `mini-css-extract-plugin` but with a support for `WebpackRTLPlugin`. Namely, it allows to load async CSS files depending of page's current direction. Please check mentioned packages to learn how to use them.
 
 ```bash
-npm install --save-dev mini-css-extract-plugin
+npm install --save-dev mini-css-extract-plugin-with-rtl
 ```
 
 <h2 align="center">Usage</h2>
 
 ### Configuration
 
-#### `publicPath`
-
-Type: `String|Function`
-Default: the `publicPath` in `webpackOptions.output`
-
-Specifies a custom public path for the target file(s).
-
-#### Minimal example
-
 **webpack.config.js**
 
 ```js
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const MiniCssExtractPlugin = require("mini-css-extract-plugin-with-rtl");
+const WebpackRTLPlugin = require("webpack-rtl-plugin");
+
 module.exports = {
   plugins: [
     new MiniCssExtractPlugin({
@@ -54,7 +21,11 @@ module.exports = {
       // both options are optional
       filename: '[name].css',
       chunkFilename: '[id].css',
+      rtlEnabled: true,
+      rtlGlobalVar: 'pageDir' // Value should be 'rtl' to activate RTL mode. If not specified, document.dir will be used instead
+
     }),
+    new WebpackRTLPlugin() // You must not pass filename option
   ],
   module: {
     rules: [
