@@ -412,6 +412,7 @@ class MiniCssExtractPlugin {
                   'var linkTag = document.createElement("link");',
                   'linkTag.rel = "stylesheet";',
                   'linkTag.type = "text/css";',
+                  'linkTag.setAttribute("data-webpack", true);',
                   'linkTag.onload = resolve;',
                   'linkTag.onerror = function(event) {',
                   Template.indent([
