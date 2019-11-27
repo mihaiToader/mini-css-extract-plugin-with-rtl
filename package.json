@@ -1,15 +1,18 @@
 {
-  "name": "mini-css-extract-plugin",
+  "name": "@automattic/mini-css-extract-plugin-with-rtl",
   "version": "0.8.0",
   "description": "extracts CSS into separate files",
   "license": "MIT",
-  "repository": "webpack-contrib/mini-css-extract-plugin",
-  "author": "Tobias Koppers @sokra",
-  "homepage": "https://github.com/webpack-contrib/mini-css-extract-plugin",
-  "bugs": "https://github.com/webpack-contrib/mini-css-extract-plugin/issues",
+  "repository": "automattic/mini-css-extract-plugin-with-rtl",
+  "author": "Automattic",
+  "homepage": "https://github.com/automattic/mini-css-extract-plugin-with-rtl",
+  "bugs": "https://github.com/automattic/mini-css-extract-plugin-with-rtl/issues",
   "main": "dist/cjs.js",
   "engines": {
     "node": ">= 6.9.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "start": "npm run build -- -w",
@@ -74,7 +77,8 @@
     "standard-version": "^6.0.1",
     "webpack": "^4.35.3",
     "webpack-cli": "^3.3.6",
-    "webpack-dev-server": "^3.7.2"
+    "webpack-dev-server": "^3.7.2",
+    "webpack-rtl-plugin": "^2.0.0"
   },
   "keywords": [
     "webpack",
