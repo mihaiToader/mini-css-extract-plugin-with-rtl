@@ -1,3 +1,65 @@
+This plugin is a fork of [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin) but with a support for [WebpackRTLPlugin](https://github.com/romainberger/webpack-rtl-plugin). Namely, it allows to load async CSS files depending of page's current direction. Please check mentioned packages to learn how to use them.
+
+```bash
+npm install --save-dev mini-css-extract-plugin-with-rtl
+```
+
+<h2 align="center">Usage</h2>
+
+### Configuration
+
+**webpack.config.js**
+
+```js
+const MiniCssExtractPlugin = require("mini-css-extract-plugin-with-rtl");
+const WebpackRTLPlugin = require("webpack-rtl-plugin");
+
+module.exports = {
+  plugins: [
+    new MiniCssExtractPlugin({
+      // Options similar to the same options in webpackOptions.output
+      // both options are optional
+      filename: '[name].css',
+      chunkFilename: '[id].css',
+      rtlEnabled: true,
+      // Global variable (e.g., `window.pageDir`) whose value determines whether to load the LTR or
+      // RTL version of a CSS chunk at runtime. Value should be either `"ltr"` or `"rtl"`. If the
+      // `rtlGlobalVar` option is not specified, we check `document.dir` by default.
+      rtlGlobalVar: 'pageDir' 
+
+    }),
+    new WebpackRTLPlugin() // You must not pass filename option
+  ],
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: MiniCssExtractPlugin.loader,
+            options: {
+              // you can specify a publicPath here
+              // by default it uses publicPath in webpackOptions.output
+              publicPath: '../',
+              hmr: process.env.NODE_ENV === 'development',
+            },
+          },
+          'css-loader',
+        ],
+      },
+    ],
+  },
+};
+```
+
+### Credits
+
+Originally created by Maxim Valenko as [beshanoe/mini-css-extract-plugin-with-rtl](https://github.com/beshanoe/mini-css-extract-plugin-with-rtl). Automattic updated the plugin to use the latest `mini-css-extract-plugin` upstream version, reorganized the commit structure to make the fork easier to maintain, and added support for `data-webpack` attribute in the `<link>` tags inserted into the HTML body.
+
+Original `mini-css-extract-plugin` README continues from here
+
+***
+
 <div align="center">
   <!-- replace with accurate logo e.g from https://worldvectorlogo.com/ -->
   <img width="200" height="200" src="https://cdn.worldvectorlogo.com/logos/javascript.svg">
