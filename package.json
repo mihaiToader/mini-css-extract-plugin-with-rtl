@@ -1,12 +1,16 @@
 {
-  "name": "@automattic/mini-css-extract-plugin-with-rtl",
+  "name": "@sector-labs/mini-css-extract-plugin-with-rtl",
   "version": "1.2.0",
   "description": "extracts CSS into separate files",
   "license": "MIT",
-  "repository": "automattic/mini-css-extract-plugin-with-rtl",
-  "author": "Automattic",
-  "homepage": "https://github.com/automattic/mini-css-extract-plugin-with-rtl",
-  "bugs": "https://github.com/automattic/mini-css-extract-plugin-with-rtl/issues",
+  "repository": "SectorLabs/mini-css-extract-plugin-with-rtl",
+  "author": "Sector Labs <open-source@sectorlabs.ro>",
+  "homepage": "https://github.com/SectorLabs/mini-css-extract-plugin-with-rtl",
+  "bugs": "https://github.com/SectorLabs/mini-css-extract-plugin-with-rl/issues",
+  "funding": {
+    "type": "opencollective",
+    "url": "https://opencollective.com/webpack"
+  },
   "main": "dist/cjs.js",
   "engines": {
     "node": ">= 10.13.0"
