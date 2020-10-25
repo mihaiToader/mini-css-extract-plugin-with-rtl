@@ -1,5 +1,6 @@
-const Self = require('../../');
 const WebpackRTLPlugin = require('webpack-rtl-plugin');
+
+const Self = require('../../');
 
 const ENABLE_HMR =
   typeof process.env.ENABLE_HMR !== 'undefined'

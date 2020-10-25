@@ -11,8 +11,8 @@ npm install --save-dev mini-css-extract-plugin-with-rtl
 **webpack.config.js**
 
 ```js
-const MiniCssExtractPlugin = require("mini-css-extract-plugin-with-rtl");
-const WebpackRTLPlugin = require("webpack-rtl-plugin");
+const MiniCssExtractPlugin = require('mini-css-extract-plugin-with-rtl');
+const WebpackRTLPlugin = require('webpack-rtl-plugin');
 
 module.exports = {
   plugins: [
@@ -25,10 +25,9 @@ module.exports = {
       // Global variable (e.g., `window.pageDir`) whose value determines whether to load the LTR or
       // RTL version of a CSS chunk at runtime. Value should be either `"ltr"` or `"rtl"`. If the
       // `rtlGlobalVar` option is not specified, we check `document.dir` by default.
-      rtlGlobalVar: 'pageDir' 
-
+      rtlGlobalVar: 'pageDir',
     }),
-    new WebpackRTLPlugin() // You must not pass filename option
+    new WebpackRTLPlugin(), // You must not pass filename option
   ],
   module: {
     rules: [
@@ -58,7 +57,7 @@ Originally created by Maxim Valenko as [beshanoe/mini-css-extract-plugin-with-rt
 
 Original `mini-css-extract-plugin` README continues from here
 
-***
+---
 
 <div align="center">
   <img width="200" height="200" src="https://cdn.worldvectorlogo.com/logos/javascript.svg">
