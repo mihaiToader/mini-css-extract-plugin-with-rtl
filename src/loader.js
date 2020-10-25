@@ -1,5 +1,3 @@
-import NativeModule from 'module';
-
 import path from 'path';
 
 import loaderUtils from 'loader-utils';
@@ -8,11 +6,13 @@ import NodeTargetPlugin from 'webpack/lib/node/NodeTargetPlugin';
 import LibraryTemplatePlugin from 'webpack/lib/LibraryTemplatePlugin';
 import SingleEntryPlugin from 'webpack/lib/SingleEntryPlugin';
 import LimitChunkCountPlugin from 'webpack/lib/optimize/LimitChunkCountPlugin';
-import validateOptions from 'schema-utils';
+import NormalModule from 'webpack/lib/NormalModule';
+import { validate } from 'schema-utils';
 
-import schema from './options.json';
+import CssDependency from './CssDependency';
+import { findModuleById, evalModuleCode } from './utils';
+import schema from './loader-options.json';
 
-const MODULE_TYPE = 'css/mini-extract';
 const pluginName = 'mini-css-extract-plugin';
 
 function hotLoader(content, context) {
@@ -36,36 +36,19 @@ function hotLoader(content, context) {
   `;
 }
 
-const exec = (loaderContext, code, filename) => {
-  const module = new NativeModule(filename, loaderContext);
-
-  module.paths = NativeModule._nodeModulePaths(loaderContext.context); // eslint-disable-line no-underscore-dangle
-  module.filename = filename;
-  module._compile(code, filename); // eslint-disable-line no-underscore-dangle
-
-  return module.exports;
-};
-
-const findModuleById = (modules, id) => {
-  for (const module of modules) {
-    if (module.id === id) {
-      return module;
-    }
-  }
-
-  return null;
-};
-
 export function pitch(request) {
   const options = loaderUtils.getOptions(this) || {};
 
-  validateOptions(schema, options, 'Mini CSS Extract Plugin Loader');
+  validate(schema, options, {
+    name: 'Mini CSS Extract Plugin Loader',
+    baseDataPath: 'options',
+  });
 
   const loaders = this.loaders.slice(this.loaderIndex + 1);
 
   this.addDependency(this.resourcePath);
 
-  const childFilename = '*'; // eslint-disable-line no-path-concat
+  const childFilename = '*';
   const publicPath =
     typeof options.publicPath === 'string'
       ? options.publicPath === '' || options.publicPath.endsWith('/')
@@ -91,51 +74,97 @@ export function pitch(request) {
   );
   new LimitChunkCountPlugin({ maxChunks: 1 }).apply(childCompiler);
 
-  // We set loaderContext[MODULE_TYPE] = false to indicate we already in
-  // a child compiler so we don't spawn another child compilers from there.
   childCompiler.hooks.thisCompilation.tap(
     `${pluginName} loader`,
     (compilation) => {
-      compilation.hooks.normalModuleLoader.tap(
-        `${pluginName} loader`,
-        (loaderContext, module) => {
-          // eslint-disable-next-line no-param-reassign
-          loaderContext.emitFile = this.emitFile;
-          loaderContext[MODULE_TYPE] = false; // eslint-disable-line no-param-reassign
+      const normalModuleHook =
+        typeof NormalModule.getCompilationHooks !== 'undefined'
+          ? NormalModule.getCompilationHooks(compilation).loader
+          : compilation.hooks.normalModuleLoader;
 
-          if (module.request === request) {
-            // eslint-disable-next-line no-param-reassign
-            module.loaders = loaders.map((loader) => {
-              return {
-                loader: loader.path,
-                options: loader.options,
-                ident: loader.ident,
-              };
-            });
-          }
+      normalModuleHook.tap(`${pluginName} loader`, (loaderContext, module) => {
+        // eslint-disable-next-line no-param-reassign
+        loaderContext.emitFile = this.emitFile;
+
+        if (module.request === request) {
+          // eslint-disable-next-line no-param-reassign
+          module.loaders = loaders.map((loader) => {
+            return {
+              loader: loader.path,
+              options: loader.options,
+              ident: loader.ident,
+            };
+          });
         }
-      );
+      });
     }
   );
 
   let source;
 
-  childCompiler.hooks.afterCompile.tap(pluginName, (compilation) => {
-    source =
-      compilation.assets[childFilename] &&
-      compilation.assets[childFilename].source();
+  const isWebpack4 = childCompiler.webpack
+    ? false
+    : typeof childCompiler.resolvers !== 'undefined';
 
-    // Remove all chunk assets
-    compilation.chunks.forEach((chunk) => {
-      chunk.files.forEach((file) => {
-        delete compilation.assets[file]; // eslint-disable-line no-param-reassign
+  if (isWebpack4) {
+    childCompiler.hooks.afterCompile.tap(pluginName, (compilation) => {
+      source =
+        compilation.assets[childFilename] &&
+        compilation.assets[childFilename].source();
+
+      // Remove all chunk assets
+      compilation.chunks.forEach((chunk) => {
+        chunk.files.forEach((file) => {
+          delete compilation.assets[file]; // eslint-disable-line no-param-reassign
+        });
       });
     });
-  });
+  } else {
+    childCompiler.hooks.compilation.tap(pluginName, (compilation) => {
+      compilation.hooks.processAssets.tap(pluginName, () => {
+        source =
+          compilation.assets[childFilename] &&
+          compilation.assets[childFilename].source();
+
+        // Remove all chunk assets
+        compilation.chunks.forEach((chunk) => {
+          chunk.files.forEach((file) => {
+            compilation.deleteAsset(file);
+          });
+        });
+      });
+    });
+  }
 
   const callback = this.async();
 
   childCompiler.runAsChild((err, entries, compilation) => {
+    const addDependencies = (dependencies) => {
+      if (!Array.isArray(dependencies) && dependencies != null) {
+        throw new Error(
+          `Exported value was not extracted as an array: ${JSON.stringify(
+            dependencies
+          )}`
+        );
+      }
+
+      const identifierCountMap = new Map();
+
+      for (const dependency of dependencies) {
+        if (!dependency.identifier) {
+          // eslint-disable-next-line no-continue
+          continue;
+        }
+
+        const count = identifierCountMap.get(dependency.identifier) || 0;
+
+        this._module.addDependency(
+          new CssDependency(dependency, dependency.context, count)
+        );
+        identifierCountMap.set(dependency.identifier, count + 1);
+      }
+    };
+
     if (err) {
       return callback(err);
     }
@@ -156,37 +185,75 @@ export function pitch(request) {
       return callback(new Error("Didn't get a result from child compiler"));
     }
 
-    let text;
     let locals;
 
+    const esModule =
+      typeof options.esModule !== 'undefined' ? options.esModule : true;
+    const namedExport =
+      esModule && options.modules && options.modules.namedExport;
+
     try {
-      text = exec(this, source, request);
-      locals = text && text.locals;
-      if (!Array.isArray(text)) {
-        text = [[null, text]];
+      const originalExports = evalModuleCode(this, source, request);
+
+      // eslint-disable-next-line no-underscore-dangle
+      exports = originalExports.__esModule
+        ? originalExports.default
+        : originalExports;
+
+      if (namedExport) {
+        Object.keys(originalExports).forEach((key) => {
+          if (key !== 'default') {
+            if (!locals) {
+              locals = {};
+            }
+
+            locals[key] = originalExports[key];
+          }
+        });
       } else {
-        text = text.map((line) => {
-          const module = findModuleById(compilation.modules, line[0]);
+        locals = exports && exports.locals;
+      }
+
+      let dependencies;
+
+      if (!Array.isArray(exports)) {
+        dependencies = [[null, exports]];
+      } else {
+        dependencies = exports.map(([id, content, media, sourceMap]) => {
+          const module = findModuleById(compilation, id);
 
           return {
             identifier: module.identifier(),
-            content: line[1],
-            media: line[2],
-            sourceMap: line[3],
+            context: module.context,
+            content,
+            media,
+            sourceMap,
           };
         });
       }
-      this[MODULE_TYPE](text);
+
+      addDependencies(dependencies);
     } catch (e) {
       return callback(e);
     }
 
-    let resultSource = `// extracted by ${pluginName}`;
     const result = locals
-      ? `\nmodule.exports = ${JSON.stringify(locals)};`
+      ? namedExport
+        ? Object.keys(locals)
+            .map(
+              (key) => `\nexport const ${key} = ${JSON.stringify(locals[key])};`
+            )
+            .join('')
+        : `\n${
+            esModule ? 'export default' : 'module.exports ='
+          } ${JSON.stringify(locals)};`
+      : esModule
+      ? `\nexport {};`
       : '';
 
-    resultSource += options.hmr
+    let resultSource = `// extracted by ${pluginName}`;
+
+    resultSource += this.hot
       ? hotLoader(result, { context: this.context, options, locals })
       : result;
 
@@ -194,4 +261,5 @@ export function pitch(request) {
   });
 }
 
-export default function() {}
+// eslint-disable-next-line func-names
+export default function () {}
