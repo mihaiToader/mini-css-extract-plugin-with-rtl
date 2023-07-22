@@ -417,13 +417,14 @@ class MiniCssExtractPlugin {
                     '}',
                     'var linkTag = document.createElement("link");',
                     this.runtimeOptions.attributes,
-                    'linkTag.rel = "stylesheet";',
+                    'linkTag.rel = "preload";',
+                    'linkTag.as = "style";',
                     this.runtimeOptions.linkType
                       ? `linkTag.type = ${JSON.stringify(
                           this.runtimeOptions.linkType
                         )};`
                       : '',
-                    'linkTag.onload = resolve;',
+                    'linkTag.onload = function(event) { this.rel="stylesheet"; resolve(event)};',
                     'linkTag.onerror = function(event) {',
                     Template.indent([
                       'var request = event && event.target && event.target.href || fullhref;',
