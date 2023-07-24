@@ -1,6 +1,6 @@
 {
   "name": "@sector-labs/mini-css-extract-plugin-with-rtl",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "extracts CSS into separate files",
   "license": "MIT",
   "repository": "SectorLabs/mini-css-extract-plugin-with-rtl",
